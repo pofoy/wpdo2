@@ -35,8 +35,8 @@ function input_domain {
         INPUT_DOMAIN_NAME=$(echo $INPUT_DOMAIN_NAME | tr 'A-Z' 'a-z')
         # 验证域名是否符合规范
         INPUT_DOMAIN_NAME=$(echo $INPUT_DOMAIN_NAME | awk '/^[a-z0-9][-a-z0-9]{0,62}(\.[a-z0-9][-a-z0-9]{0,62})+$/{print $0}')
-        # 如果域名为空,则继续输入
-        if [ -z "$INPUT_DOMAIN_NAME" ]; then
+        # 验证域名是否符合规范
+        if [[ ! "$INPUT_DOMAIN_NAME" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])*(\.[a-z0-9]([-a-z0-9]*[a-z0-9])*)+$ ]]; then
             echoYC "域名有误,请重新输入!!!"
             continue
         else
