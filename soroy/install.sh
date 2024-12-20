@@ -8,6 +8,12 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# 判断 .env 文件是否存在
+if [ ! -f ../.env ]; then
+    # 复制 .env.sample 文件为 .env
+    cp ../.env.sample ../.env
+fi
+
 # 卸载旧版本 Docker（如果存在）
 echoSB "Remove Old Version Docker."
 apt remove -y docker docker-engine docker.io containerd runc >/dev/null 2>&1
