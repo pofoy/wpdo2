@@ -188,14 +188,19 @@ function site_install_ssl {
     # 开始申请证书
     echo -e "${BC}开始申请证书${ED}"
     certbot certonly --webroot -w $VHOSTS_DIR/$SITE_HOSTNAME/wordpress --email $CERTBOT_EMAIL --agree-tos --staging --no-eff-email $domain_list_str
-    # 输出成功
-    echoGC "证书申请结束"
-    # 修改配置文件 去掉 #ssl_certificate 和 #ssl_certificate_key 前面的# 启用ssl
-    # sed -i 's/#ssl_certificate/ssl_certificate/' $site_conf_file
-    # 重新加载nginx配置 
+    if [ $? -eq 0 ]; then
+        # 修改配置文件 去掉 #ssl_certificate 和 #ssl_certificate_key 前面的# 启用ssl
+        sed -i 's/#ssl_/ssl_/' $site_conf_file
+        sed -i 's/#add_header Strict-Transport-Security/add_header Strict-Transport-Security/' $site_conf_file
+        sed -i 's/#error_page 497/error_page 497/' $site_conf_file
+        sed -i 's/#listen 443 ssl/listen 443 ssl/' $site_conf_file
+        # 输出成功
+        echoGC "证书启用成功"
+    else
+        echoCC "证书申请失败"
+    fi
+    # 重新加载nginx配置
     docker exec nginx nginx -s reload
-    # 输出成功
-    echoGC "证书启用成功"
 }
 
 # 站点命令
