@@ -190,10 +190,10 @@ function site_install_ssl {
         apt install certbot -y
     fi
     # 获取站点虚拟主机名
-    site_hostname_get
+    site_domain_list
     # 安装SSL证书
 
-    docker exec nginx nginx -s reload
+    # docker exec nginx nginx -s reload
 }
 
 # 站点命令
@@ -210,6 +210,7 @@ function site_cmd {
         case $num2 in 
             1) create_site ;;
             2) site_append_domain ;;
+            3) site_install_ssl ;;
             e) break ;;
             *) echoCC '输入有误.'
         esac
