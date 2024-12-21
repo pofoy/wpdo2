@@ -28,7 +28,7 @@ function input_domain {
         # 域名是否存在
         local domain_exists=0
         # 请输入域名
-        echo -ne "$BC请输入域名(eg:demo.com):$ED "
+        echo -ne "$SB请输入域名(eg:demo.com):$ED "
         # 接收输入域名
         read -r INPUT_DOMAIN_NAME
         # 将域名转换为小写
@@ -37,7 +37,7 @@ function input_domain {
         INPUT_DOMAIN_NAME=$(echo $INPUT_DOMAIN_NAME | awk '/^[a-z0-9][-a-z0-9]{0,62}(\.[a-z0-9][-a-z0-9]{0,62})+$/{print $0}')
         # 验证域名是否符合规范
         if [ -z "$INPUT_DOMAIN_NAME" ]; then
-            echoYC "域名有误,请重新输入!!!"
+            echoRC "域名有误,请重新输入!!!"
             continue
         else
             # 从配置文件中提取所有的域名并检查是否存在
@@ -89,7 +89,11 @@ function create_site {
     # 重新加载nginx配置
     docker exec nginx nginx -s reload
     # 输出成功
-    echoGC "站点创建成功,请访问: http://$INPUT_DOMAIN_NAME"
+    echoGC "站点创建成功:"
+    # 站点链接
+    echoGC "站点链接: http://$INPUT_DOMAIN_NAME"
+    # 输出站点目录
+    echoGC "站点目录: $VHOSTS_DIR/$INPUT_DOMAIN_NAME"
     # 输出数据库名
     echoGC "数据库名: $DATABASE_NAME"
     # 输出数据库用户名
@@ -106,7 +110,7 @@ function site_hostname_get {
     sites=("$VHOSTS_DIR"/*)
     # 如果目录为空，则退出
     if [ ${#sites[@]} -eq 0 ]; then
-        echo "没有找到任何站点"
+        echoCC "没有找到任何站点"
         return 1
     fi
     # 去除路径前缀，只保留站点名
@@ -116,32 +120,49 @@ function site_hostname_get {
     # 显示站点列表
     local i=1
     for site in "${sites[@]}"; do
-        echo -e "${YC}${i}${ED}.${LG}${site}${ED}"
+        echo -e "${CC}${i}${ED}.${LG}${site}${ED}"
         ((i++))
     done
     # 读取用户输入并验证
     while true; do
-        read -p "请输入站点序号(1-${#sites[@]}): " site_index
+        echo -ne "${SB}请输入站点序号(${ED}1-${#sites[@]}${SB}): ${ED}"
+        read -a site_index
         # 验证输入是否为数字
         if ! [[ "$site_index" =~ ^[0-9]+$ ]]; then
-            echo "请输入有效的数字"
+            echoRC "请输入有效的数字"
             continue
         fi
         # 验证范围
         if [ "$site_index" -lt 1 ] || [ "$site_index" -gt ${#sites[@]} ]; then
-            echo "请输入 1 到 ${#sites[@]} 之间的数字"
+            echoRC "请输入 1-${#sites[@]} 之间的数字"
             continue
         fi
         break
     done
     # 获取选择的站点名（数组索引从0开始，所以要减1）
     SITE_HOSTNAME="${sites[$((site_index-1))]}"
-    echo "$SITE_HOSTNAME"
+    echo -e "${PC}SITE:${ED} ${SITE_HOSTNAME}"
+    return 0
+}
+
+# 查询是否存在站点
+function site_exists {
+    # 统计指定目录下有多少个 .conf 文件
+    local conf_count=$(find "$VHOSTS_CONF_DIR" -type f -name "*.conf" | wc -l)
+    # 如果目录下没有 .conf 文件,则退出
+    if [ $conf_count -eq 0 ]; then
+        echoCC "没有找到任何站点"
+        return 1
+    fi
     return 0
 }
 
 # 追加域名
 function site_append_domain {
+    # 判断是否存在站点
+    if ! site_exists; then
+        return 1
+    fi
     # 获取站点虚拟主机名
     site_hostname_get
     # 请输入域名
@@ -150,14 +171,20 @@ function site_append_domain {
     local site_conf_file=$VHOSTS_CONF_DIR/$SITE_HOSTNAME.conf
     # 在配置文件中追加域名 先找到 server_name 然后追加域名
     sed -i '/server_name/ s/;/ '"$INPUT_DOMAIN_NAME"';/' $site_conf_file
+    # 获取站点绑定的域名列表
+    local domain_list=$(sed -n 's/.*server_name\s\+\(.*\);/\1/p' $site_conf_file)
     # 重新加载nginx配置
     docker exec nginx nginx -s reload
     # 输出成功
-    echoGC "域名追加成功,请访问: https://$INPUT_DOMAIN_NAME"
+    echo -e "${GC}域名追加成功:${ED} ${CC}$domain_list${ED}"
 }
 
 # 安装SSL证书
 function site_install_ssl {
+    # 判断是否存在站点
+    if ! site_exists; then
+        return 1
+    fi
     # 判断 acme.sh 是否安装
     if ! command -v certbot &> /dev/null; then
         # 安装 acme.sh
@@ -171,14 +198,14 @@ function site_install_ssl {
     local domain_list=$(sed -n 's/.*server_name\s\+\(.*\);/\1/p' $site_conf_file)
     # 转成数组
     domain_list_array=($domain_list)
-    echo -e "${BC}需要申请证书域名:${ED} ${domain_list}"
+    echo -e "${SB}需要申请证书域名:${ED} ${domain_list}"
     # 询问用户是否域名解析成功
-    echo -ne "${BC}请确认域名解析成功?[y/n]:${ED} "
+    echo -ne "${CC}确认域名解析成功?${ED}[${SB}y/n${ED}${CC}]:${ED} "
     read -a num2
     case $num2 in 
         y) ;;
         n) return ;;
-        *) echoCC '输入有误.' && return ;;
+        *) echoRC '输入有误.' && return ;;
     esac
     # 转成指定格式字符串  eg: -d demo.com -d www.demo.com
     local domain_list_str=""
@@ -186,7 +213,7 @@ function site_install_ssl {
         domain_list_str="$domain_list_str -d $domain"
     done
     # 开始申请证书
-    echo -e "${BC}开始申请证书${ED}"
+    echo -e "${SB}开始申请证书${ED}"
     certbot certonly --webroot -w $VHOSTS_DIR/$SITE_HOSTNAME/wordpress --email $CERTBOT_EMAIL --agree-tos --no-eff-email $domain_list_str
     if [ $? -eq 0 ]; then
         # 修改配置文件 去掉 #ssl_certificate 和 #ssl_certificate_key 前面的# 启用ssl
@@ -195,9 +222,9 @@ function site_install_ssl {
         sed -i 's/#error_page 497/error_page 497/' $site_conf_file
         sed -i 's/#listen 443 ssl/listen 443 ssl/' $site_conf_file
         # 输出成功
-        echoGC "证书启用成功"
+        echoCC "证书启用成功"
     else
-        echoCC "证书申请失败"
+        echoRC "证书申请失败"
     fi
     # 重新加载nginx配置
     docker exec nginx nginx -s reload
@@ -205,15 +232,19 @@ function site_install_ssl {
 
 # 删除站点
 function site_delete {
+    # 判断是否存在站点
+    if ! site_exists; then
+        return 1
+    fi
     # 获取站点虚拟主机名
     site_hostname_get
     # 询问是否删除
-    echo -ne "${BC}删除站点(包含备份):${ED} ${SITE_HOSTNAME}?[y/n]:${ED} "
+    echo -ne "${SB}完全删除站点(包含备份)?[${ED}y/n${SB}]:${ED} "
     read -a num2
     case $num2 in 
         y) ;;
         n) return ;;
-        *) echoCC '输入有误.' && return ;;
+        *) echoRC '输入有误.' && return ;;
     esac
     # 删除站点目录
     local site_dir="$VHOSTS_DIR/$SITE_HOSTNAME"
@@ -232,7 +263,7 @@ function site_delete {
     # 重新加载nginx配置
     docker exec nginx nginx -s reload
     # 输出成功
-    echoGC "站点删除成功"
+    echoCC "站点删除成功"
 }
 
 # 站点命令
@@ -240,11 +271,11 @@ function site_cmd {
     # 循环
     while true; do
         # 显示菜单
-        echo -e "${YC}1${ED}.${LG}创建站点${ED}"
-        echo -e "${YC}2${ED}.${LG}追加域名${ED}"
-        echo -e "${YC}3${ED}.${LG}安装SSL证书${ED}"
-        echo -e "${YC}4${ED}.${LG}删除站点${ED}"
-        echo -e "${YC}e${ED}.${LG}返回${ED}"
+        echo -e "${SB}1${ED}.${LG}创建站点${ED}"
+        echo -e "${SB}2${ED}.${LG}追加域名${ED}"
+        echo -e "${SB}3${ED}.${LG}安装SSL证书${ED}"
+        echo -e "${SB}4${ED}.${LG}删除站点${ED}"
+        echo -e "${SB}e${ED}.${LG}退出${ED}"
         echo -ne "${BC}请选择: ${ED}"
         read -a num2
         case $num2 in 
