@@ -74,17 +74,6 @@ function create_site {
     cp -rf $DNMP_DIR/soroy/site.conf $VHOSTS_CONF_DIR/$INPUT_DOMAIN_NAME.conf
     # 替换域名
     sed -i "s/default_replace_8888/$INPUT_DOMAIN_NAME/" $VHOSTS_CONF_DIR/$INPUT_DOMAIN_NAME.conf
-    # 判断站点目录是否存在
-    if [ ! -d "$VHOSTS_DIR/$INPUT_DOMAIN_NAME" ]; then
-        # 创建站点目录
-        mkdir -p $VHOSTS_DIR/$INPUT_DOMAIN_NAME
-    fi
-    # 创建站点证书目录
-    mkdir -p $SSL_DIR/$INPUT_DOMAIN_NAME
-    # 先生成密钥文件
-    openssl genrsa -out $SSL_DIR/$INPUT_DOMAIN_NAME/key.pem 2048
-    # 使用密钥文件生成自签名证书
-    openssl req -new -x509 -key $SSL_DIR/$INPUT_DOMAIN_NAME/privkey.pem -out $SSL_DIR/$INPUT_DOMAIN_NAME/fullchain.pem -days 365 -subj "/C=CN/ST=Beijing/L=Beijing/O=Soroy/OU=Soroy/CN=$INPUT_DOMAIN_NAME"
     # 下载wordpress
     wget -O $VHOSTS_DIR/$INPUT_DOMAIN_NAME/wordpress.zip https://wordpress.org/latest.zip
     # 解压wordpress 到站点目录 不输出
@@ -100,7 +89,7 @@ function create_site {
     # 重新加载nginx配置
     docker exec nginx nginx -s reload
     # 输出成功
-    echoGC "站点创建成功,请访问: https://$INPUT_DOMAIN_NAME"
+    echoGC "站点创建成功,请访问: http://$INPUT_DOMAIN_NAME"
     # 输出数据库名
     echoGC "数据库名: $DATABASE_NAME"
     # 输出数据库用户名
@@ -184,7 +173,7 @@ function site_install_ssl {
     domain_list_array=($domain_list)
     echo -e "${BC}需要申请证书域名:${ED} ${domain_list}"
     # 询问用户是否域名解析成功
-    echo -ne "${BC}请确认域名解析成功,否则无法申请证书,是否继续?[y/n]:${ED} "
+    echo -ne "${BC}请确认域名解析成功?[y/n]:${ED} "
     read -a num2
     case $num2 in 
         y) ;;
@@ -198,11 +187,11 @@ function site_install_ssl {
     done
     # 开始申请证书
     echo -e "${BC}开始申请证书${ED}"
-    certbot certonly --webroot -w $VHOSTS_DIR/$SITE_HOSTNAME/wordpress --email $CERTBOT_EMAIL --agree-tos --no-eff-email $domain_list_str
+    certbot certonly --webroot -w $VHOSTS_DIR/$SITE_HOSTNAME/wordpress --email $CERTBOT_EMAIL --agree-tos --staging --no-eff-email $domain_list_str
     # 输出成功
     echoGC "证书申请结束"
     # 修改配置文件 去掉 #ssl_certificate 和 #ssl_certificate_key 前面的# 启用ssl
-    sed -i 's/#ssl_certificate/ssl_certificate/' $site_conf_file
+    # sed -i 's/#ssl_certificate/ssl_certificate/' $site_conf_file
     # 重新加载nginx配置 
     docker exec nginx nginx -s reload
     # 输出成功
