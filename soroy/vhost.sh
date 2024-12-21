@@ -203,6 +203,22 @@ function site_install_ssl {
     docker exec nginx nginx -s reload
 }
 
+# 删除站点
+function site_delete {
+    # 获取站点虚拟主机名
+    site_hostname_get
+    # 删除站点目录
+    rm -rf $VHOSTS_DIR/$SITE_HOSTNAME
+    # 删除站点配置文件
+    rm -rf $VHOSTS_CONF_DIR/$SITE_HOSTNAME.conf
+    # certbot 删除SSL证书
+    certbot delete --cert-name $SITE_HOSTNAME
+    # 重新加载nginx配置
+    docker exec nginx nginx -s reload
+    # 输出成功
+    echoGC "站点删除成功"
+}
+
 # 站点命令
 function site_cmd {
     # 循环
@@ -211,6 +227,7 @@ function site_cmd {
         echo -e "${YC}1${ED}.${LG}创建站点${ED}"
         echo -e "${YC}2${ED}.${LG}追加域名${ED}"
         echo -e "${YC}3${ED}.${LG}安装SSL证书${ED}"
+        echo -e "${YC}4${ED}.${LG}删除站点${ED}"
         echo -e "${YC}e${ED}.${LG}返回${ED}"
         echo -ne "${BC}请选择: ${ED}"
         read -a num2
@@ -218,6 +235,7 @@ function site_cmd {
             1) create_site ;;
             2) site_append_domain ;;
             3) site_install_ssl ;;
+            4) site_delete ;;
             e) break ;;
             *) echoCC '输入有误.'
         esac
