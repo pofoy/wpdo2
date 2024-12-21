@@ -167,21 +167,6 @@ function site_append_domain {
     echoGC "域名追加成功,请访问: https://$INPUT_DOMAIN_NAME"
 }
 
-# 获取站点绑定的域名列表
-function site_domain_list {
-    # 获取站点虚拟主机名
-    site_hostname_get
-    # 请输入域名
-    input_domain
-    # 虚拟主机配置文件
-    local site_conf_file=$VHOSTS_CONF_DIR/$SITE_HOSTNAME.conf
-    # 获取站点绑定的域名列表
-    local domain_list=$(grep -oP 'server_name\s+\K[^\s;]+' $site_conf_file)
-    # 输出域名列表
-    echo "$domain_list"
-    # docker exec nginx nginx -s reload
-}
-
 # 安装SSL证书
 function site_install_ssl {
     # 判断 acme.sh 是否安装
@@ -190,10 +175,38 @@ function site_install_ssl {
         apt install certbot -y
     fi
     # 获取站点虚拟主机名
-    site_domain_list
-    # 安装SSL证书
-
-    # docker exec nginx nginx -s reload
+    site_hostname_get
+    # 虚拟主机配置文件
+    local site_conf_file=$VHOSTS_CONF_DIR/$SITE_HOSTNAME.conf
+    # 获取站点绑定的域名列表
+    local domain_list=$(sed -n 's/.*server_name\s\+\(.*\);/\1/p' $site_conf_file)
+    # 转成数组
+    domain_list_array=($domain_list)
+    echo -e "${BC}需要申请证书域名:${ED} ${domain_list}"
+    # 询问用户是否域名解析成功
+    echo -ne "${BC}请确认域名解析成功,否则无法申请证书,是否继续?[y/n]:${ED} "
+    read -a num2
+    case $num2 in 
+        y) ;;
+        n) return ;;
+        *) echoCC '输入有误.'
+    esac
+    # 转成指定格式字符串  eg: -d demo.com -d www.demo.com
+    local domain_list_str=""
+    for domain in "${domain_list_array[@]}"; do
+        domain_list_str="$domain_list_str -d $domain"
+    done
+    # 开始申请证书
+    echo -e "${BC}开始申请证书${ED}"
+    certbot certonly --webroot -w $VHOSTS_DIR/$SITE_HOSTNAME/wordpress --email $CERTBOT_EMAIL --agree-tos --no-eff-email $domain_list_str
+    # 输出成功
+    echoGC "证书申请结束"
+    # 修改配置文件 去掉 #ssl_certificate 和 #ssl_certificate_key 前面的# 启用ssl
+    sed -i 's/#ssl_certificate/ssl_certificate/' $site_conf_file
+    # 重新加载nginx配置 
+    docker exec nginx nginx -s reload
+    # 输出成功
+    echoGC "证书启用成功"
 }
 
 # 站点命令
