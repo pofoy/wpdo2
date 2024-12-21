@@ -187,7 +187,7 @@ function site_install_ssl {
     done
     # 开始申请证书
     echo -e "${BC}开始申请证书${ED}"
-    certbot certonly --webroot -w $VHOSTS_DIR/$SITE_HOSTNAME/wordpress --email $CERTBOT_EMAIL --agree-tos --staging --no-eff-email $domain_list_str
+    certbot certonly --webroot -w $VHOSTS_DIR/$SITE_HOSTNAME/wordpress --email $CERTBOT_EMAIL --agree-tos --no-eff-email $domain_list_str
     if [ $? -eq 0 ]; then
         # 修改配置文件 去掉 #ssl_certificate 和 #ssl_certificate_key 前面的# 启用ssl
         sed -i 's/#ssl_/ssl_/' $site_conf_file
