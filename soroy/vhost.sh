@@ -207,6 +207,14 @@ function site_install_ssl {
 function site_delete {
     # 获取站点虚拟主机名
     site_hostname_get
+    # 询问是否删除
+    echo -ne "${BC}删除站点(包含备份):${ED} ${SITE_HOSTNAME}?[y/n]:${ED} "
+    read -a num2
+    case $num2 in 
+        y) ;;
+        n) return ;;
+        *) echoCC '输入有误.'
+    esac
     # 删除站点目录
     rm -rf $VHOSTS_DIR/$SITE_HOSTNAME
     # 删除站点配置文件
