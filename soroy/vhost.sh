@@ -68,7 +68,7 @@ function create_site {
     # 判断站点目录是否存在
     if [ ! -d "$VHOSTS_DIR/$INPUT_DOMAIN_NAME" ]; then
         # 自动创建站点目录
-        mkdir -p "$VHOSTS_DIR/$INPUT_DOMAIN_NAME"
+        mkdir -p "$VHOSTS_DIR/$INPUT_DOMAIN_NAME/backup"
     fi
     # 自动创建站点配置文件
     cp -rf $DNMP_DIR/soroy/site.conf $VHOSTS_CONF_DIR/$INPUT_DOMAIN_NAME.conf
@@ -211,8 +211,11 @@ function site_delete {
     rm -rf $VHOSTS_DIR/$SITE_HOSTNAME
     # 删除站点配置文件
     rm -rf $VHOSTS_CONF_DIR/$SITE_HOSTNAME.conf
-    # certbot 删除SSL证书
-    certbot delete --cert-name $SITE_HOSTNAME
+    # 判断证书是否存在
+    if [ -d "$SSL_DIR/$SITE_HOSTNAME" ]; then
+        # certbot 删除SSL证书
+        certbot delete --cert-name $SITE_HOSTNAME
+    fi
     # 重新加载nginx配置
     docker exec nginx nginx -s reload
     # 输出成功
