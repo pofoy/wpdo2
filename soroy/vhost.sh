@@ -96,6 +96,8 @@ function create_site {
     echoGC "站点目录: $VHOSTS_DIR/$INPUT_DOMAIN_NAME"
     # 输出数据库名
     echoGC "数据库名: $DATABASE_NAME"
+    # 数据库主机
+    echoGC "mysql:3306"
     # 输出数据库用户名
     echoGC "数据库用户名: root"
     # 输出数据库密码
