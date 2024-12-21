@@ -11,7 +11,7 @@ fi
 # 判断 .env 文件是否存在
 if [ ! -f ../.env ]; then
     # 复制 .env.sample 文件为 .env
-    cp ../.env.sample ../.env
+    cp ../env.sample ../.env
 fi
 
 # 卸载旧版本 Docker（如果存在）
