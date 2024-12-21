@@ -178,7 +178,7 @@ function site_install_ssl {
     case $num2 in 
         y) ;;
         n) return ;;
-        *) echoCC '输入有误.'
+        *) echoCC '输入有误.' && return ;;
     esac
     # 转成指定格式字符串  eg: -d demo.com -d www.demo.com
     local domain_list_str=""
@@ -213,16 +213,21 @@ function site_delete {
     case $num2 in 
         y) ;;
         n) return ;;
-        *) echoCC '输入有误.'
+        *) echoCC '输入有误.' && return ;;
     esac
     # 删除站点目录
-    rm -rf $VHOSTS_DIR/$SITE_HOSTNAME
+    local site_dir="$VHOSTS_DIR/$SITE_HOSTNAME"
+    # 防止误删
+    if [ "${site_dir%/}" != "${VHOSTS_DIR%/}" ]; then
+        # 删除站点目录
+        rm -rf "$site_dir"
+    fi
     # 删除站点配置文件
     rm -rf $VHOSTS_CONF_DIR/$SITE_HOSTNAME.conf
     # 判断证书是否存在
     if [ -d "$SSL_DIR/$SITE_HOSTNAME" ]; then
         # certbot 删除SSL证书
-        certbot delete --cert-name $SITE_HOSTNAME
+        certbot delete --cert-name $SITE_HOSTNAME -n
     fi
     # 重新加载nginx配置
     docker exec nginx nginx -s reload
