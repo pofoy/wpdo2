@@ -167,18 +167,32 @@ function site_append_domain {
     echoGC "域名追加成功,请访问: https://$INPUT_DOMAIN_NAME"
 }
 
+# 获取站点绑定的域名列表
+function site_domain_list {
+    # 获取站点虚拟主机名
+    site_hostname_get
+    # 请输入域名
+    input_domain
+    # 虚拟主机配置文件
+    local site_conf_file=$VHOSTS_CONF_DIR/$SITE_HOSTNAME.conf
+    # 获取站点绑定的域名列表
+    local domain_list=$(grep -oP 'server_name\s+\K[^\s;]+' $site_conf_file)
+    # 输出域名列表
+    echo "$domain_list"
+    # docker exec nginx nginx -s reload
+}
+
 # 安装SSL证书
 function site_install_ssl {
     # 判断 acme.sh 是否安装
-    if ! command -v acme.sh &> /dev/null; then
+    if ! command -v certbot &> /dev/null; then
         # 安装 acme.sh
-        curl https://get.acme.sh | sh
+        apt install certbot -y
     fi
     # 获取站点虚拟主机名
-    # 获取站点虚拟主机名
     site_hostname_get
-
     # 安装SSL证书
+
     docker exec nginx nginx -s reload
 }
 
