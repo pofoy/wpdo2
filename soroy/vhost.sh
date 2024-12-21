@@ -13,7 +13,7 @@ VHOSTS_CONF_DIR=$DNMP_DIR/services/nginx/conf.d
 # 默认虚拟主机 站点目录
 VHOSTS_DIR=$DNMP_DIR/www
 # SSL目录
-SSL_DIR=$DNMP_DIR/services/nginx/ssl
+SSL_DIR=/etc/letsencrypt/live
 # 输入的域名
 INPUT_DOMAIN_NAME=""
 # 需要操作的站点虚拟主机名
@@ -84,7 +84,7 @@ function create_site {
     # 先生成密钥文件
     openssl genrsa -out $SSL_DIR/$INPUT_DOMAIN_NAME/key.pem 2048
     # 使用密钥文件生成自签名证书
-    openssl req -new -x509 -key $SSL_DIR/$INPUT_DOMAIN_NAME/key.pem -out $SSL_DIR/$INPUT_DOMAIN_NAME/cert.pem -days 365 -subj "/C=CN/ST=Beijing/L=Beijing/O=Soroy/OU=Soroy/CN=$INPUT_DOMAIN_NAME"
+    openssl req -new -x509 -key $SSL_DIR/$INPUT_DOMAIN_NAME/privkey.pem -out $SSL_DIR/$INPUT_DOMAIN_NAME/fullchain.pem -days 365 -subj "/C=CN/ST=Beijing/L=Beijing/O=Soroy/OU=Soroy/CN=$INPUT_DOMAIN_NAME"
     # 下载wordpress
     wget -O $VHOSTS_DIR/$INPUT_DOMAIN_NAME/wordpress.zip https://wordpress.org/latest.zip
     # 解压wordpress 到站点目录 不输出
